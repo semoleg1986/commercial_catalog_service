@@ -9,6 +9,16 @@ install: requirements ## Установить зависимости
 	pip install -r requirements.txt
 
 # ========================
+# Runtime / DB
+# ========================
+
+run: ## Запустить HTTP API локально
+	uvicorn src.interface.http.main:app --host 0.0.0.0 --port 8007 --reload
+
+migrate: ## Применить alembic миграции
+	alembic upgrade head
+
+# ========================
 # Test
 # ========================
 
