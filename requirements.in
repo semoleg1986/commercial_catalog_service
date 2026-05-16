@@ -1,13 +1,5 @@
-pytest
 alembic
 sqlalchemy
 fastapi
 pydantic
 uvicorn
-
-black
-isort
-flake8
-mypy
-
-pre-commit
