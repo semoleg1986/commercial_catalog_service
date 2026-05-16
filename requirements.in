@@ -1,5 +1,6 @@
 alembic
 sqlalchemy
+psycopg[binary]
 fastapi
 pydantic
 uvicorn
