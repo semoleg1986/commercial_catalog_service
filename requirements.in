@@ -1,4 +1,9 @@
 pytest
+alembic
+sqlalchemy
+fastapi
+pydantic
+uvicorn
 
 black
 isort

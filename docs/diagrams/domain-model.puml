@@ -1,0 +1,54 @@
+@startuml
+title Commercial Catalog Domain Model
+
+class CourseOffer {
+  offer_id
+  course_id
+  offer_code
+  title
+  is_active
+  is_default
+}
+
+class BundleOffer {
+  bundle_offer_id
+  title
+  is_active
+}
+
+class OfferComponent {
+  offer_id
+  quantity
+  position
+}
+
+class OfferPrice {
+  currency
+  list_price
+  sale_price
+  discount_reason
+}
+
+class OfferAvailability {
+  is_active
+  sellable_from
+  sellable_to
+}
+
+class PromoLabel {
+  label
+  kind
+}
+
+CourseOffer *-- OfferPrice
+CourseOffer *-- OfferAvailability
+CourseOffer *-- PromoLabel
+
+BundleOffer *-- OfferPrice
+BundleOffer *-- OfferAvailability
+BundleOffer *-- PromoLabel
+BundleOffer *-- OfferComponent
+
+OfferComponent --> CourseOffer : references
+
+@enduml

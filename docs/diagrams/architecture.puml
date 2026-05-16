@@ -1,0 +1,44 @@
+@startuml
+title Commercial Catalog Service Architecture
+
+package "Interface" {
+  [HTTP Routers]
+  [Schemas]
+}
+
+package "Application" {
+  [ApplicationFacade]
+  [Offer Handlers]
+  [Bundle Handlers]
+  [Catalog Queries]
+  [Ports]
+}
+
+package "Domain" {
+  [CourseOffer]
+  [BundleOffer]
+  [OfferPrice]
+  [OfferAvailability]
+  [PromoLabel]
+}
+
+package "Infrastructure" {
+  [SQLAlchemy Repositories]
+  [Course Service Client]
+  [UnitOfWork]
+  [Outbox Publisher]
+}
+
+[HTTP Routers] --> [ApplicationFacade]
+[ApplicationFacade] --> [Offer Handlers]
+[ApplicationFacade] --> [Bundle Handlers]
+[ApplicationFacade] --> [Catalog Queries]
+[Offer Handlers] --> [CourseOffer]
+[Bundle Handlers] --> [BundleOffer]
+[Catalog Queries] --> [Ports]
+[Ports] <-- [SQLAlchemy Repositories]
+[Ports] <-- [Course Service Client]
+[Ports] <-- [UnitOfWork]
+[Ports] <-- [Outbox Publisher]
+
+@enduml

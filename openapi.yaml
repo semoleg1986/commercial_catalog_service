@@ -1,0 +1,430 @@
+openapi: 3.1.0
+info:
+  title: commercial_catalog_service API
+  version: 0.1.0
+  description: |
+    Контрактный API для контекста коммерческого каталога.
+    Сервис владеет offer/bundle read-model и коммерческими snapshot-полями витрины.
+    Авторизация Bearer JWT: issuer=auth_service, audience=platform_clients, typ=access.
+servers:
+  - url: http://localhost:8000
+
+tags:
+  - name: health
+  - name: public
+  - name: internal
+  - name: admin
+
+paths:
+  /healthz:
+    get:
+      tags: [health]
+      summary: Проверка состояния
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Сервис доступен
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    const: ok
+
+  /v1/public/catalog/offers:
+    get:
+      tags: [public]
+      summary: Получить публичный каталог курсов с default offer
+      operationId: listPublicCatalogOffers
+      responses:
+        '200':
+          description: Каталог доступен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicCatalogResponse'
+
+  /v1/public/courses/{course_id}/offers:
+    get:
+      tags: [public]
+      summary: Получить курс и список его offer
+      operationId: getCourseOffers
+      parameters:
+        - $ref: '#/components/parameters/CourseId'
+      responses:
+        '200':
+          description: Offer для курса найдены
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CourseOffersResponse'
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /v1/public/bundles:
+    get:
+      tags: [public]
+      summary: Получить публичный список bundle-offer
+      operationId: listPublicBundles
+      responses:
+        '200':
+          description: Bundle доступны
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicBundleListResponse'
+
+  /internal/v1/offers/{offer_id}:
+    get:
+      tags: [internal]
+      summary: Получить internal snapshot offer для checkout
+      operationId: getInternalOfferSnapshot
+      security:
+        - serviceTokenHeader: []
+      parameters:
+        - $ref: '#/components/parameters/OfferId'
+      responses:
+        '200':
+          description: Snapshot найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalOfferSnapshotResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/AccessDenied' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /internal/v1/bundles/{bundle_offer_id}:
+    get:
+      tags: [internal]
+      summary: Получить internal snapshot bundle-offer
+      operationId: getInternalBundleSnapshot
+      security:
+        - serviceTokenHeader: []
+      parameters:
+        - $ref: '#/components/parameters/BundleOfferId'
+      responses:
+        '200':
+          description: Snapshot найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalBundleSnapshotResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/AccessDenied' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    serviceTokenHeader:
+      type: apiKey
+      in: header
+      name: X-Service-Token
+
+  parameters:
+    CourseId:
+      name: course_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    OfferId:
+      name: offer_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    BundleOfferId:
+      name: bundle_offer_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    Unauthorized:
+      description: Требуется авторизация
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    AccessDenied:
+      description: Доступ запрещен
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFound:
+      description: Ресурс не найден
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+  schemas:
+    Problem:
+      type: object
+      required: [type, title, status, detail]
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+        trace_id: { type: string }
+
+    Money:
+      type: object
+      required: [currency, list_price, sale_price]
+      properties:
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+        list_price:
+          type: number
+          format: float
+        sale_price:
+          type: number
+          format: float
+        discount_reason:
+          type: string
+          nullable: true
+
+    PromoLabel:
+      type: object
+      required: [label, kind]
+      properties:
+        label:
+          type: string
+        kind:
+          type: string
+
+    OfferFeatureFlags:
+      type: object
+      required: [delivery_mode, teacher_included, homework_review_included]
+      properties:
+        delivery_mode:
+          type: string
+          enum: [online]
+        teacher_included:
+          type: boolean
+        homework_review_included:
+          type: boolean
+
+    DefaultOfferCard:
+      type: object
+      required:
+        - offer_id
+        - offer_code
+        - title
+        - price
+        - feature_flags
+      properties:
+        offer_id:
+          type: string
+          format: uuid
+        offer_code:
+          type: string
+        title:
+          type: string
+        price:
+          $ref: '#/components/schemas/Money'
+        promo_labels:
+          type: array
+          items:
+            $ref: '#/components/schemas/PromoLabel'
+        feature_flags:
+          $ref: '#/components/schemas/OfferFeatureFlags'
+
+    CatalogCourseCard:
+      type: object
+      required:
+        - course_id
+        - title
+        - description_short
+        - level
+        - lessons_count
+        - default_offer
+        - offers_count
+      properties:
+        course_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description_short:
+          type: string
+        level:
+          type: string
+        lessons_count:
+          type: integer
+        default_offer:
+          $ref: '#/components/schemas/DefaultOfferCard'
+        offers_count:
+          type: integer
+
+    PublicCatalogResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CatalogCourseCard'
+
+    OfferView:
+      type: object
+      required:
+        - offer_id
+        - offer_code
+        - title
+        - description_short
+        - price
+        - feature_flags
+      properties:
+        offer_id:
+          type: string
+          format: uuid
+        offer_code:
+          type: string
+        title:
+          type: string
+        description_short:
+          type: string
+        price:
+          $ref: '#/components/schemas/Money'
+        promo_labels:
+          type: array
+          items:
+            $ref: '#/components/schemas/PromoLabel'
+        feature_flags:
+          $ref: '#/components/schemas/OfferFeatureFlags'
+
+    CourseSummary:
+      type: object
+      required: [course_id, title, description, level]
+      properties:
+        course_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        level:
+          type: string
+
+    CourseOffersResponse:
+      type: object
+      required: [course, offers]
+      properties:
+        course:
+          $ref: '#/components/schemas/CourseSummary'
+        offers:
+          type: array
+          items:
+            $ref: '#/components/schemas/OfferView'
+
+    BundleComponentView:
+      type: object
+      required: [offer_id, quantity, position]
+      properties:
+        offer_id:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+        position:
+          type: integer
+
+    BundleOfferView:
+      type: object
+      required: [bundle_offer_id, title, description_short, price, components]
+      properties:
+        bundle_offer_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description_short:
+          type: string
+        price:
+          $ref: '#/components/schemas/Money'
+        promo_labels:
+          type: array
+          items:
+            $ref: '#/components/schemas/PromoLabel'
+        components:
+          type: array
+          items:
+            $ref: '#/components/schemas/BundleComponentView'
+
+    PublicBundleListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BundleOfferView'
+
+    InternalOfferSnapshotResponse:
+      type: object
+      required:
+        - offer_id
+        - course_id
+        - offer_code
+        - title
+        - is_active
+        - price
+        - feature_flags
+      properties:
+        offer_id:
+          type: string
+          format: uuid
+        course_id:
+          type: string
+          format: uuid
+        offer_code:
+          type: string
+        title:
+          type: string
+        is_active:
+          type: boolean
+        price:
+          $ref: '#/components/schemas/Money'
+        feature_flags:
+          $ref: '#/components/schemas/OfferFeatureFlags'
+
+    InternalBundleSnapshotResponse:
+      type: object
+      required:
+        - bundle_offer_id
+        - title
+        - is_active
+        - price
+        - components
+      properties:
+        bundle_offer_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        is_active:
+          type: boolean
+        price:
+          $ref: '#/components/schemas/Money'
+        components:
+          type: array
+          items:
+            $ref: '#/components/schemas/BundleComponentView'

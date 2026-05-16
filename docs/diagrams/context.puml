@@ -1,0 +1,26 @@
+@startuml
+title Commercial Catalog Context
+
+rectangle "auth_service" as auth
+rectangle "course_service" as course
+rectangle "commercial_catalog_service" as catalog
+rectangle "payments_service" as payments
+rectangle "bonus_wallet_service" as bonus
+rectangle "attribution-service" as attribution
+rectangle "web_app / admin_app" as web
+
+web --> catalog : public/admin API
+payments --> catalog : internal offer lookup
+catalog --> course : course snapshot lookup
+
+payments --> bonus : bonus quote/commit
+payments --> attribution : referral context
+
+note right of catalog
+Owns commercial offers,
+bundle offers,
+catalog price snapshot
+and promo labels.
+end note
+
+@enduml
