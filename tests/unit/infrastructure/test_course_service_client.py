@@ -36,3 +36,19 @@ def test_course_snapshot_from_catalog_item_marks_snapshot_published():
     assert snapshot.course_id == "course-2"
     assert snapshot.description_short == "Short"
     assert snapshot.is_published is True
+
+
+def test_course_snapshot_from_catalog_item_supports_lessons_total_field():
+    snapshot = _course_snapshot_from_catalog_item(
+        {
+            "course_id": "course-3",
+            "title": "Reading",
+            "description": "Narrative",
+            "level": "beginner",
+            "lessons_total": 9,
+        }
+    )
+
+    assert snapshot.course_id == "course-3"
+    assert snapshot.lessons_count == 9
+    assert snapshot.is_published is True

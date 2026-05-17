@@ -4,7 +4,6 @@ import json
 from dataclasses import dataclass
 from typing import Any
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote
 from urllib.request import Request, urlopen
 
 from src.application.ports.external_clients import CourseCatalogReader, CourseSnapshot
@@ -22,23 +21,22 @@ class CourseServiceHttpClient(CourseCatalogReader):
         self._config = config
 
     def get_course_snapshot(self, course_id: str) -> CourseSnapshot | None:
-        payload = self._get_json(f"/v1/public/courses/{quote(course_id)}")
-        if payload is None:
-            return None
-        return _course_snapshot_from_payload(payload)
+        for item in self.list_published_course_snapshots():
+            if item.course_id == course_id:
+                return item
+        return None
 
     def list_published_course_snapshots(self) -> tuple[CourseSnapshot, ...]:
-        payload = self._get_json("/v1/public/catalog")
-        if payload is None:
+        payload = self._get_json("/v1/public/courses")
+        if not isinstance(payload, list):
             return ()
-        items = payload.get("items", [])
         return tuple(
             _course_snapshot_from_catalog_item(item)
-            for item in items
+            for item in payload
             if isinstance(item, dict)
         )
 
-    def _get_json(self, path: str) -> dict[str, Any] | None:
+    def _get_json(self, path: str) -> Any | None:
         url = f"{self._config.base_url.rstrip('/')}{path}"
         headers: dict[str, str] = {"Accept": "application/json"}
         if self._config.service_token:
@@ -78,6 +76,6 @@ def _course_snapshot_from_catalog_item(item: dict[str, Any]) -> CourseSnapshot:
             item.get("description_short") or item.get("description", "")
         ),
         level=str(item.get("level", "")),
-        lessons_count=int(item.get("lessons_count", 0) or 0),
+        lessons_count=int(item.get("lessons_count", item.get("lessons_total", 0)) or 0),
         is_published=True,
     )
