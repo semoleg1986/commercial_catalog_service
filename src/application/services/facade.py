@@ -8,8 +8,10 @@ from src.application.dto import (
     GetInternalOfferSnapshotQuery,
     ListPublicBundlesQuery,
     ListPublicCatalogOffersQuery,
+    UpsertInternalCourseOfferCommand,
 )
-from src.domain.errors import NotFoundError, ValidationError
+from src.domain import CourseOffer, OfferAvailability, OfferPrice
+from src.domain.errors import DefaultOfferConflictError, NotFoundError, ValidationError
 
 
 @dataclass(slots=True)
@@ -52,3 +54,56 @@ class CommercialCatalogFacade:
         if bundle is None:
             raise NotFoundError("Bundle offer не найден.")
         return bundle
+
+    def upsert_internal_course_offer(self, command: UpsertInternalCourseOfferCommand):
+        if not command.offer_id.strip():
+            raise ValidationError("offer_id обязателен.")
+        if not command.course_id.strip():
+            raise ValidationError("course_id обязателен.")
+        if not command.offer_code.strip():
+            raise ValidationError("offer_code обязателен.")
+        if not command.title.strip():
+            raise ValidationError("title обязателен.")
+        if not command.description_short.strip():
+            raise ValidationError("description_short обязателен.")
+
+        offer = CourseOffer(
+            offer_id=command.offer_id,
+            course_id=command.course_id,
+            offer_code=command.offer_code,
+            title=command.title,
+            description_short=command.description_short,
+            sort_order=command.sort_order,
+            delivery_mode=command.delivery_mode,
+            teacher_included=command.teacher_included,
+            homework_review_included=command.homework_review_included,
+            availability=OfferAvailability(is_active=command.is_active),
+            price=OfferPrice(
+                currency=command.currency,
+                list_price=command.list_price,
+                sale_price=command.sale_price,
+            ),
+            is_default=command.is_default,
+        )
+
+        with self.uow_factory() as uow:
+            existing_default = uow.course_offers.get_default_by_course_id(
+                command.course_id
+            )
+            if (
+                command.is_default
+                and existing_default is not None
+                and existing_default.offer_id != command.offer_id
+            ):
+                raise DefaultOfferConflictError(
+                    "course already has a different default offer"
+                )
+
+            existing_offer = uow.course_offers.get_by_id(command.offer_id)
+            if existing_offer is None:
+                uow.course_offers.add(offer)
+            else:
+                uow.course_offers.save(offer)
+            uow.commit()
+
+        return offer

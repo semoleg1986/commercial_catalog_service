@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 
 from src.application.dto import (
     GetInternalBundleSnapshotQuery,
     GetInternalOfferSnapshotQuery,
+    UpsertInternalCourseOfferCommand,
 )
 from src.interface.http.common.internal_auth import require_service_token
 from src.interface.http.v1.internal.schemas import (
@@ -13,6 +14,7 @@ from src.interface.http.v1.internal.schemas import (
     InternalOfferSnapshotResponse,
     MoneyResponse,
     OfferFeatureFlagsResponse,
+    UpsertInternalCourseOfferRequest,
 )
 from src.interface.http.wiring import get_facade
 
@@ -80,4 +82,51 @@ def get_bundle_snapshot(
             )
             for component in bundle.components
         ],
+    )
+
+
+@router.post(
+    "/course-offers",
+    response_model=InternalOfferSnapshotResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def upsert_course_offer(
+    request: UpsertInternalCourseOfferRequest,
+    facade=Depends(get_facade),
+) -> InternalOfferSnapshotResponse:
+    offer = facade.upsert_internal_course_offer(
+        UpsertInternalCourseOfferCommand(
+            offer_id=request.offer_id,
+            course_id=request.course_id,
+            offer_code=request.offer_code,
+            title=request.title,
+            description_short=request.description_short,
+            currency=request.currency,
+            list_price=request.list_price,
+            sale_price=request.sale_price,
+            sort_order=request.sort_order,
+            delivery_mode=request.delivery_mode,
+            teacher_included=request.teacher_included,
+            homework_review_included=request.homework_review_included,
+            is_active=request.is_active,
+            is_default=request.is_default,
+        )
+    )
+    return InternalOfferSnapshotResponse(
+        offer_id=offer.offer_id,
+        course_id=offer.course_id,
+        offer_code=offer.offer_code,
+        title=offer.title,
+        is_active=offer.availability.is_active,
+        price=MoneyResponse(
+            currency=offer.price.currency,
+            list_price=offer.price.list_price,
+            sale_price=offer.price.sale_price,
+            discount_reason=offer.price.discount_reason,
+        ),
+        feature_flags=OfferFeatureFlagsResponse(
+            delivery_mode=offer.delivery_mode,
+            teacher_included=offer.teacher_included,
+            homework_review_included=offer.homework_review_included,
+        ),
     )
