@@ -10,7 +10,10 @@ HTTP API использует RFC7807 (`application/problem+json`).
 - `status`
 - `detail`
 - `instance`
-- `trace_id`
+- `request_id`
+- `correlation_id`
+
+`X-Request-ID` и `X-Correlation-ID` также возвращаются в headers, когда доступны.
 
 ## Доменные Ошибки V1
 
