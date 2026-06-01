@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from uuid import uuid4
+
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -15,15 +17,19 @@ UNAUTHORIZED = "https://api.example.com/problems/unauthorized"
 
 
 def _request_id(request: Request) -> str | None:
-    return getattr(request.state, "request_id", None) or request.headers.get(
-        "X-Request-ID"
-    )
+    request_id = getattr(request.state, "request_id", None)
+    if request_id is None:
+        request_id = request.headers.get("X-Request-ID") or uuid4().hex
+        request.state.request_id = request_id
+    return request_id
 
 
 def _correlation_id(request: Request) -> str | None:
-    return getattr(request.state, "correlation_id", None) or request.headers.get(
-        "X-Correlation-ID"
-    )
+    correlation_id = getattr(request.state, "correlation_id", None)
+    if correlation_id is None:
+        correlation_id = request.headers.get("X-Correlation-ID") or _request_id(request)
+        request.state.correlation_id = correlation_id
+    return correlation_id
 
 
 def _headers(request: Request, extra: dict[str, str] | None = None) -> dict[str, str]:

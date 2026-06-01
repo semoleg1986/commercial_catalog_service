@@ -34,3 +34,23 @@ def test_http_error_response_contains_trace_ids() -> None:
     assert response.json().get("detail") == "Требуется X-Service-Token."
     assert response.json().get("request_id") == "req-catalog-001"
     assert response.json().get("correlation_id") == "corr-catalog-001"
+
+
+def test_http_error_response_generates_trace_ids() -> None:
+    app = FastAPI()
+    register_exception_handlers(app)
+
+    @app.get("/missing")
+    def missing() -> None:
+        raise HTTPException(status_code=404, detail="Offer not found.")
+
+    client = TestClient(app)
+    response = client.get("/missing")
+
+    assert response.status_code == 404
+    assert response.headers.get("X-Request-ID")
+    assert response.headers.get("X-Correlation-ID")
+    assert response.json().get("request_id") == response.headers.get("X-Request-ID")
+    assert response.json().get("correlation_id") == response.headers.get(
+        "X-Correlation-ID"
+    )
