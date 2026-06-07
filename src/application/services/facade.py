@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from src.application.dto import (
     GetCourseOffersQuery,
     GetInternalBundleSnapshotQuery,
+    GetInternalCourseOffersQuery,
+    GetInternalDefaultOfferStatusQuery,
     GetInternalOfferSnapshotQuery,
     ListPublicBundlesQuery,
     ListPublicCatalogOffersQuery,
@@ -30,6 +32,20 @@ class CommercialCatalogFacade:
         if view is None:
             raise NotFoundError("Course offers не найдены.")
         return view
+
+    def list_internal_course_offers(self, query: GetInternalCourseOffersQuery):
+        if not query.course_id.strip():
+            raise ValidationError("course_id обязателен.")
+        with self.uow_factory() as uow:
+            return uow.course_offer_reads.list_internal_course_offers(query.course_id)
+
+    def get_internal_default_offer_status(
+        self, query: GetInternalDefaultOfferStatusQuery
+    ):
+        if not query.course_id.strip():
+            raise ValidationError("course_id обязателен.")
+        with self.uow_factory() as uow:
+            return uow.course_offer_reads.has_active_default_offer(query.course_id)
 
     def list_public_bundles(self, _: ListPublicBundlesQuery):
         with self.uow_factory() as uow:

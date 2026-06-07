@@ -132,6 +132,20 @@ class InMemoryCourseOfferReadRepository(CourseOfferReadRepository):
     def get_internal_offer_snapshot(self, offer_id: str) -> CourseOffer | None:
         return self._offers.get(offer_id)
 
+    def list_internal_course_offers(self, course_id: str) -> tuple[CourseOffer, ...]:
+        items = [
+            offer for offer in self._offers.values() if offer.course_id == course_id
+        ]
+        return tuple(sorted(items, key=lambda item: (item.sort_order, item.offer_code)))
+
+    def has_active_default_offer(self, course_id: str) -> bool:
+        return any(
+            offer.course_id == course_id
+            and offer.is_default
+            and offer.availability.is_active
+            for offer in self._offers.values()
+        )
+
 
 class InMemoryBundleOfferReadRepository(BundleOfferReadRepository):
     def __init__(self, bundle_offers: dict[str, BundleOffer]) -> None:

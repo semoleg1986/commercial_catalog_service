@@ -27,9 +27,21 @@ class InternalOfferSnapshotResponse(BaseModel):
     course_id: str
     offer_code: str
     title: str
+    description_short: str | None = None
+    is_default: bool = False
     is_active: bool
     price: MoneyResponse
     feature_flags: OfferFeatureFlagsResponse
+
+
+class InternalCourseOffersResponse(BaseModel):
+    course_id: str
+    offers: list[InternalOfferSnapshotResponse]
+
+
+class InternalDefaultOfferStatusResponse(BaseModel):
+    course_id: str
+    has_active_default_offer: bool
 
 
 class InternalBundleSnapshotResponse(BaseModel):

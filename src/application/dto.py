@@ -14,6 +14,16 @@ class GetCourseOffersQuery:
 
 
 @dataclass(frozen=True, slots=True)
+class GetInternalCourseOffersQuery:
+    course_id: str
+
+
+@dataclass(frozen=True, slots=True)
+class GetInternalDefaultOfferStatusQuery:
+    course_id: str
+
+
+@dataclass(frozen=True, slots=True)
 class ListPublicBundlesQuery:
     pass
 

@@ -4,6 +4,8 @@ from fastapi import APIRouter, Depends, status
 
 from src.application.dto import (
     GetInternalBundleSnapshotQuery,
+    GetInternalCourseOffersQuery,
+    GetInternalDefaultOfferStatusQuery,
     GetInternalOfferSnapshotQuery,
     UpsertInternalCourseOfferCommand,
 )
@@ -11,6 +13,8 @@ from src.interface.http.common.internal_auth import require_service_token
 from src.interface.http.v1.internal.schemas import (
     BundleComponentResponse,
     InternalBundleSnapshotResponse,
+    InternalCourseOffersResponse,
+    InternalDefaultOfferStatusResponse,
     InternalOfferSnapshotResponse,
     MoneyResponse,
     OfferFeatureFlagsResponse,
@@ -25,19 +29,14 @@ router = APIRouter(
 )
 
 
-@router.get("/offers/{offer_id}", response_model=InternalOfferSnapshotResponse)
-def get_offer_snapshot(
-    offer_id: str,
-    facade=Depends(get_facade),
-) -> InternalOfferSnapshotResponse:
-    offer = facade.get_internal_offer_snapshot(
-        GetInternalOfferSnapshotQuery(offer_id=offer_id)
-    )
+def _to_internal_offer_response(offer) -> InternalOfferSnapshotResponse:
     return InternalOfferSnapshotResponse(
         offer_id=offer.offer_id,
         course_id=offer.course_id,
         offer_code=offer.offer_code,
         title=offer.title,
+        description_short=offer.description_short,
+        is_default=offer.is_default,
         is_active=offer.availability.is_active,
         price=MoneyResponse(
             currency=offer.price.currency,
@@ -50,6 +49,51 @@ def get_offer_snapshot(
             teacher_included=offer.teacher_included,
             homework_review_included=offer.homework_review_included,
         ),
+    )
+
+
+@router.get("/offers/{offer_id}", response_model=InternalOfferSnapshotResponse)
+def get_offer_snapshot(
+    offer_id: str,
+    facade=Depends(get_facade),
+) -> InternalOfferSnapshotResponse:
+    offer = facade.get_internal_offer_snapshot(
+        GetInternalOfferSnapshotQuery(offer_id=offer_id)
+    )
+    return _to_internal_offer_response(offer)
+
+
+@router.get(
+    "/courses/{course_id}/offers",
+    response_model=InternalCourseOffersResponse,
+)
+def list_course_offers(
+    course_id: str,
+    facade=Depends(get_facade),
+) -> InternalCourseOffersResponse:
+    offers = facade.list_internal_course_offers(
+        GetInternalCourseOffersQuery(course_id=course_id)
+    )
+    return InternalCourseOffersResponse(
+        course_id=course_id,
+        offers=[_to_internal_offer_response(offer) for offer in offers],
+    )
+
+
+@router.get(
+    "/courses/{course_id}/default-offer-status",
+    response_model=InternalDefaultOfferStatusResponse,
+)
+def get_default_offer_status(
+    course_id: str,
+    facade=Depends(get_facade),
+) -> InternalDefaultOfferStatusResponse:
+    has_offer = facade.get_internal_default_offer_status(
+        GetInternalDefaultOfferStatusQuery(course_id=course_id)
+    )
+    return InternalDefaultOfferStatusResponse(
+        course_id=course_id,
+        has_active_default_offer=has_offer,
     )
 
 
@@ -112,21 +156,4 @@ def upsert_course_offer(
             is_default=request.is_default,
         )
     )
-    return InternalOfferSnapshotResponse(
-        offer_id=offer.offer_id,
-        course_id=offer.course_id,
-        offer_code=offer.offer_code,
-        title=offer.title,
-        is_active=offer.availability.is_active,
-        price=MoneyResponse(
-            currency=offer.price.currency,
-            list_price=offer.price.list_price,
-            sale_price=offer.price.sale_price,
-            discount_reason=offer.price.discount_reason,
-        ),
-        feature_flags=OfferFeatureFlagsResponse(
-            delivery_mode=offer.delivery_mode,
-            teacher_included=offer.teacher_included,
-            homework_review_included=offer.homework_review_included,
-        ),
-    )
+    return _to_internal_offer_response(offer)

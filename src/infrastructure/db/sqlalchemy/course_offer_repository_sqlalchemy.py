@@ -150,6 +150,17 @@ class SqlAlchemyCourseOfferReadRepository(CourseOfferReadRepository):
         model = self._session.execute(stmt).scalar_one_or_none()
         return None if model is None else model_to_course_offer(model)
 
+    def list_internal_course_offers(self, course_id: str) -> tuple[CourseOffer, ...]:
+        return self._load_course_offers(course_id)
+
+    def has_active_default_offer(self, course_id: str) -> bool:
+        stmt = select(CourseOfferModel.offer_id).where(
+            CourseOfferModel.course_id == course_id,
+            CourseOfferModel.is_default.is_(True),
+            CourseOfferModel.is_active.is_(True),
+        )
+        return self._session.execute(stmt).first() is not None
+
     def _load_course_offers(self, course_id: str) -> tuple[CourseOffer, ...]:
         stmt = (
             select(CourseOfferModel)
