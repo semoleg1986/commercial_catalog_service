@@ -33,7 +33,8 @@ src/interface/http/
 - извлекать actor context и вызывать `ApplicationFacade`
 - предоставлять public-endpoints витрины
 - предоставлять internal-endpoints для `payments_service`
-- предоставлять admin-endpoints управления offer позже
+- предоставлять server-side internal endpoints для Studio/admin BFF без
+  раскрытия service token в браузере
 
 ## Public API Baseline
 
@@ -45,6 +46,9 @@ src/interface/http/
 
 - `GET /internal/v1/offers/{offer_id}`
 - `GET /internal/v1/bundles/{bundle_offer_id}`
+- `GET /internal/v1/courses/{course_id}/offers`
+- `GET /internal/v1/courses/{course_id}/default-offer-status`
+- `POST /internal/v1/course-offers`
 
 ## Правила Границ
 

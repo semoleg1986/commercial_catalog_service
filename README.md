@@ -50,6 +50,19 @@ make lint
 make format
 ```
 
+## Internal API
+
+Internal endpoints require `X-Service-Token`.
+
+- `GET /internal/v1/offers/{offer_id}` — resolve offer snapshot for checkout.
+- `GET /internal/v1/courses/{course_id}/offers` — list all course offers for
+  server-side Studio/admin BFFs.
+- `GET /internal/v1/courses/{course_id}/default-offer-status` — boolean
+  readiness signal for `course_service` authoring read model.
+- `POST /internal/v1/course-offers` — upsert course offer. Browser clients must
+  call this only through a server-side proxy; do not expose service token to the
+  browser.
+
 ## Migrations
 
 ```bash
