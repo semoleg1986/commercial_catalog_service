@@ -61,7 +61,8 @@ Internal endpoints require `X-Service-Token`.
   readiness signal for `course_service` authoring read model.
 - `POST /internal/v1/course-offers` — upsert course offer. Browser clients must
   call this only through a server-side proxy; do not expose service token to the
-  browser.
+  browser. Writes require service token plus admin actor headers:
+  `X-Actor-User-Id` and `X-Actor-Roles: admin`.
 
 ## Migrations
 

@@ -50,6 +50,15 @@ src/interface/http/
 - `GET /internal/v1/courses/{course_id}/default-offer-status`
 - `POST /internal/v1/course-offers`
 
+`POST /internal/v1/course-offers` is a commercial write operation. It requires:
+
+- `X-Service-Token`;
+- `X-Actor-User-Id`;
+- `X-Actor-Roles` containing `admin`.
+
+Teacher/content-manager Studio users may read offer state through a server-side
+BFF, but they must not mutate price/offer policy.
+
 ## Правила Границ
 
 - без SQLAlchemy/session usage

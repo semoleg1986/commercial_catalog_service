@@ -9,7 +9,10 @@ from src.application.dto import (
     GetInternalOfferSnapshotQuery,
     UpsertInternalCourseOfferCommand,
 )
-from src.interface.http.common.internal_auth import require_service_token
+from src.interface.http.common.internal_auth import (
+    require_admin_actor,
+    require_service_token,
+)
 from src.interface.http.v1.internal.schemas import (
     BundleComponentResponse,
     InternalBundleSnapshotResponse,
@@ -136,6 +139,7 @@ def get_bundle_snapshot(
 )
 def upsert_course_offer(
     request: UpsertInternalCourseOfferRequest,
+    _actor=Depends(require_admin_actor),
     facade=Depends(get_facade),
 ) -> InternalOfferSnapshotResponse:
     offer = facade.upsert_internal_course_offer(

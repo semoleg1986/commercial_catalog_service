@@ -15,9 +15,17 @@ def _client() -> TestClient:
     return TestClient(create_app())
 
 
+def _service_headers(role: str = "admin") -> dict[str, str]:
+    return {
+        "X-Actor-Roles": role,
+        "X-Actor-User-Id": f"{role}-user-1",
+        "X-Service-Token": "test-service-token",
+    }
+
+
 def test_internal_course_offer_read_model_contract() -> None:
     client = _client()
-    headers = {"X-Service-Token": "test-service-token"}
+    headers = _service_headers()
 
     upsert_response = client.post(
         "/internal/v1/course-offers",
@@ -67,3 +75,53 @@ def test_internal_course_offer_read_model_requires_service_token() -> None:
 
     assert response.status_code == 401
     assert response.headers["content-type"] == "application/problem+json"
+
+
+def test_internal_course_offer_write_requires_actor_context() -> None:
+    client = _client()
+
+    response = client.post(
+        "/internal/v1/course-offers",
+        headers={"X-Service-Token": "test-service-token"},
+        json={
+            "offer_id": "course-1-standard",
+            "course_id": "course-1",
+            "offer_code": "standard",
+            "title": "Standard",
+            "description_short": "Standard access",
+            "currency": "USD",
+            "list_price": 100,
+            "sale_price": 80,
+            "is_active": True,
+            "is_default": True,
+        },
+    )
+
+    assert response.status_code == 403
+    assert response.headers["content-type"] == "application/problem+json"
+    assert response.json()["type"] == "https://api.example.com/problems/access-denied"
+
+
+def test_internal_course_offer_write_rejects_non_admin_actor() -> None:
+    client = _client()
+
+    response = client.post(
+        "/internal/v1/course-offers",
+        headers=_service_headers("teacher"),
+        json={
+            "offer_id": "course-1-standard",
+            "course_id": "course-1",
+            "offer_code": "standard",
+            "title": "Standard",
+            "description_short": "Standard access",
+            "currency": "USD",
+            "list_price": 100,
+            "sale_price": 80,
+            "is_active": True,
+            "is_default": True,
+        },
+    )
+
+    assert response.status_code == 403
+    assert response.headers["content-type"] == "application/problem+json"
+    assert response.json()["detail"] == "Изменение offer доступно только admin actor."
